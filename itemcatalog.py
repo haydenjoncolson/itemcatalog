@@ -52,19 +52,21 @@ def fbconnect():
         app_id, app_secret, access_token)
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
-
+    data = json.loads(result)
     # Use token to get user info from API
-    userinfo_url = "https://graph.facebook.com/v2.4/me"
+    userinfo_url = "https://graph.facebook.com/v2.8/me"
     # strip expire tag from access token
-    token = result.split("&")[0]
+    token = 'access_token=' + data['access_token']
 
 
-    url = 'https://graph.facebook.com/v2.4/me?%s&fields=name,id,email' % token
+    url = 'https://graph.facebook.com/v2.8/me?%s&fields=name,id,email' % token
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
     # print "url sent for API access:%s"% url
-    # print "API JSON result: %s" % result
+    # ?print "API JSON result: %s" % result
+    # print "** Token: %s" % token
     data = json.loads(result)
+    # print "** data: ", data
     login_session['provider'] = 'facebook'
     login_session['username'] = data["name"]
     login_session['email'] = data["email"]
@@ -75,7 +77,7 @@ def fbconnect():
     login_session['access_token'] = stored_token
 
     # Get user picture
-    url = 'https://graph.facebook.com/v2.4/me/picture?%s&redirect=0&height=200&width=200' % token
+    url = 'https://graph.facebook.com/v2.8/me/picture?%s&redirect=0&height=200&width=200' % token
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
     data = json.loads(result)
@@ -104,6 +106,12 @@ def fbconnect():
 @app.route('/fbdisconnect')
 def fbdisconnect():
     facebook_id = login_session['facebook_id']
+    del login_session['facebook_id']
+    del login_session['username']
+    del login_session['email']
+    del login_session['picture']
+    del login_session['user_id']
+    del login_session['provider']
     # The access token must me included to successfully logout
     access_token = login_session['access_token']
     url = 'https://graph.facebook.com/%s/permissions?access_token=%s' % (facebook_id,access_token)
@@ -170,7 +178,8 @@ def gconnect():
         return response
 
     # Store the access token in the session for later use.
-    login_session['access_token'] = credentials.access_token
+    login_session['credentials'] = credentials.access_token
+    # login_session['credentials'] = credentials
     login_session['gplus_id'] = gplus_id
 
     # Get user info
@@ -234,12 +243,13 @@ def getUserID(email):
 def gdisconnect():
     # Only disconnect a connected user.
     credentials = login_session.get('credentials')
+    print login_session
     if credentials is None:
         response = make_response(
             json.dumps('Current user not connected.'), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
-    access_token = credentials.access_token
+    access_token = credentials
     url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % access_token
     h = httplib2.Http()
     result = h.request(url, 'GET')[0]
@@ -249,6 +259,13 @@ def gdisconnect():
             json.dumps('Failed to revoke token for given user.'), 400)
         response.headers['Content-Type'] = 'application/json'
         return response
+    else:
+        del login_session['credentials']
+        del login_session['gplus_id']
+        del login_session['username']
+        del login_session['email']
+        del login_session['picture']
+        return redirect(url_for('showCategories'))
 
 
 
@@ -256,6 +273,26 @@ def gdisconnect():
 #
 #
 #
+# JSON APIs to view Restaurant Information
+@app.route('/category/<int:category_id>/JSON')
+def categoryItemsJSON(category_id):
+    category = session.query(Category).filter_by(id=category_id).one()
+    items = session.query(Item).filter_by(
+        category_id=category_id).all()
+    return jsonify(Item=[i.serialize for i in items])
+
+
+@app.route('/category/<int:category_id>/items/<int:item_id>/JSON')
+def itemJSON(category_id, item_id):
+    item = session.query(Item).filter_by(id=item_id).one()
+    return jsonify(item=item.serialize)
+
+
+@app.route('/category/JSON')
+def categoriesJSON():
+    categories = session.query(Category).all()
+    return jsonify(Category=[c.serialize for c in categories])
+
 
 # Show all restaurants
 @app.route('/')
@@ -401,21 +438,27 @@ def disconnect():
     if 'provider' in login_session:
         if login_session['provider'] == 'google':
             gdisconnect()
-            del login_session['gplus_id']
-            del login_session['credentials']
+            # del login_session['gplus_id']
+            # del login_session['credentials']
         if login_session['provider'] == 'facebook':
             fbdisconnect()
-            del login_session['facebook_id']
-        del login_session['username']
-        del login_session['email']
-        del login_session['picture']
-        del login_session['user_id']
-        del login_session['provider']
+            # del login_session['facebook_id']
+        # del login_session['username']
+        # del login_session['email']
+        # del login_session['picture']
+        # del login_session['user_id']
+        # del login_session['provider']
         flash("You have successfully been logged out.")
         return redirect(url_for('showCategories'))
     else:
         flash("You were not logged in")
         return redirect(url_for('showCategories'))
+
+@app.route('/clearSession')
+def clearSession():
+    login_session.clear()
+    return 'Session Cleared!'
+
 
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'
