@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, jsonify, url_for, flash
+from flask import Flask, render_template, request, redirect, jsonify, url_for
+from flask import flash
 from sqlalchemy import create_engine, asc
 from sqlalchemy.orm import sessionmaker
 from database_setup import Base, Category, Item, User
@@ -23,7 +24,6 @@ Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
-
 
 # Create anti-forgery state token
 @app.route('/login')
@@ -213,8 +213,6 @@ def gconnect():
     return output
 
 # User Helper Functions
-
-
 def createUser(login_session):
     newUser = User(name=login_session['username'], email=login_session[
                    'email'], picture=login_session['picture'])
@@ -223,11 +221,9 @@ def createUser(login_session):
     user = session.query(User).filter_by(email=login_session['email']).one()
     return user.id
 
-
 def getUserInfo(user_id):
     user = session.query(User).filter_by(id=user_id).one()
     return user
-
 
 def getUserID(email):
     try:
@@ -237,8 +233,6 @@ def getUserID(email):
         return None
 
 # DISCONNECT - Revoke a current user's token and reset their login_session
-
-
 @app.route('/gdisconnect')
 def gdisconnect():
     # Only disconnect a connected user.
@@ -268,11 +262,6 @@ def gdisconnect():
         return redirect(url_for('showCategories'))
 
 
-
-# ADD JSON ENDPOINTS LATER
-#
-#
-#
 # JSON APIs to view Restaurant Information
 @app.route('/category/<int:category_id>/items/JSON')
 def categoryItemsJSON(category_id):
@@ -437,16 +426,8 @@ def disconnect():
     if 'provider' in login_session:
         if login_session['provider'] == 'google':
             gdisconnect()
-            # del login_session['gplus_id']
-            # del login_session['credentials']
         if login_session['provider'] == 'facebook':
             fbdisconnect()
-            # del login_session['facebook_id']
-        # del login_session['username']
-        # del login_session['email']
-        # del login_session['picture']
-        # del login_session['user_id']
-        # del login_session['provider']
         flash("You have successfully been logged out.")
         return redirect(url_for('showCategories'))
     else:
