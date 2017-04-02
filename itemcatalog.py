@@ -274,12 +274,12 @@ def gdisconnect():
 #
 #
 # JSON APIs to view Restaurant Information
-@app.route('/category/<int:category_id>/JSON')
+@app.route('/category/<int:category_id>/items/JSON')
 def categoryItemsJSON(category_id):
     category = session.query(Category).filter_by(id=category_id).one()
-    items = session.query(Item).filter_by(
-        category_id=category_id).all()
-    return jsonify(Item=[i.serialize for i in items])
+    items = session.query(Item).filter_by(category_id=category_id).all()
+    return jsonify(items=[i.serialize for i in items])
+
 
 
 @app.route('/category/<int:category_id>/items/<int:item_id>/JSON')
@@ -292,7 +292,6 @@ def itemJSON(category_id, item_id):
 def categoriesJSON():
     categories = session.query(Category).all()
     return jsonify(Category=[c.serialize for c in categories])
-
 
 # Show all restaurants
 @app.route('/')
