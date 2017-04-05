@@ -4,7 +4,7 @@
 This web application provides a list of categories and within each category is a list of items.
 Users can login or signup through their Google or Facebook account. Logged in users are allowed access to local permissions like creating, editing, and deleting of their own categories and category items.
 
-## How to Run on Local Machine
+## How to Run
 Prerequisites: Python, Virtual Box, and Vagrant
 
 1. Locate your vagrant directory
@@ -31,10 +31,3 @@ python items.py
 python itemcatalog.py
 ```
 8. Open your localhost: http://localhost:5000/
-
-## How to Run on Amazon Lightsail
-1. Connect to server using ssh
-```bash
-ssh ubuntu@public.ip -i ~/.ssh/LightsailDefaultPrivateKey.pem -2200
-```
-2. Install apache, mod_wsgi, and postgresql
